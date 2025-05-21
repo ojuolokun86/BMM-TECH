@@ -14,6 +14,8 @@ const getMenu = (prefix = '.') => {
 ┃ 🏓 *${prefix}ping* - Check bot responsiveness  
 ┃ 📖 *${prefix}about* - Learn about this bot  
 ┃ 🔄 *${prefix}restart* - Restart the bot  
+┃ 🎉 *${prefix}fun* - Show all fun commands  
+┃ 🗑️ *${prefix}deleteit* - Delete your command message in DM  
 ╰───────────────────────╯
 
 📌 𝗖𝗨𝗦𝗧𝗢𝗠𝗜𝗭𝗔𝗧𝗜𝗢𝗡 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦:
@@ -51,6 +53,8 @@ const getMenu = (prefix = '.') => {
 ┃ 🔗 *${prefix}group link* - Get the group invite link  
 ┃ 🔄 *${prefix}group revoke* - Revoke the group invite link  
 ┃ 🔄 *${prefix}leave* - Leave the group  
+┃ 🚫 *${prefix}block* <number> - Block a user (owner only)  
+┃ ✅ *${prefix}unblock* <number> - Unblock a user (owner only) 
 ╰───────────────────────╯
 
 📌 𝗨𝗧𝗜𝗟𝗜𝗧𝗬 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦:

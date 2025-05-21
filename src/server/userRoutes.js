@@ -13,6 +13,8 @@ const { getActivityLog, addActivityLog } = require('./info');
 const { getUserSummary, addUserData, addBotData, userData } = require('./info'); // Import userData
 const { addComplaint } = require('../database/complaint'); // Import complaint functions
 const { getNotifications } = require('../database/notification'); // Import notification functions
+const { useHybridAuthState } = require('../database/hybridAuthState');
+const QRCode = require('qrcode');
 
 // Route: Get User Summary
 router.get('/summary', async (req, res) => {
@@ -277,6 +279,11 @@ router.get('/rescan-qr/:phoneNumber', async (req, res) => {
 
     try {
         const { state } = await useHybridAuthState(phoneNumber);
+
+        // Check if QR is available and is a string
+        if (!state.creds.qr || typeof state.creds.qr !== 'string') {
+            return res.status(400).json({ success: false, message: 'QR code not available. The session may already be authenticated or not initialized yet.' });
+        }
 
         const qrCode = await new Promise((resolve, reject) => {
             QRCode.toDataURL(state.creds.qr, (err, url) => {

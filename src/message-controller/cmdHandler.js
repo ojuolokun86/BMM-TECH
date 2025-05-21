@@ -10,6 +10,8 @@ const { normalizeUserId } = require('../utils/normalizeUserId'); // Import the n
 const { getGroupMode, setGroupMode } = require('../bot/groupModeManager'); // Import setGroupMode
 const { updateUserMetrics } = require('../database/models/metrics'); // Import the user metrics functions
 const supabase = require('../supabaseClient'); // Import Supabase client
+const { handleFunCommand } = require('./funCommand'); // Import fun command handler
+const { handleProtectionCommand } = require('./protection'); // Import protection command handler
 
 
 
@@ -68,7 +70,8 @@ const handleCommand = async (sock, message, userId, authId, messageContent, subs
                         // Restrict all commands to the bot owner
     if (realSender !== normalizedUserId && realSender !== botLid) {
         await sendToChat(botInstance, remoteJid, {
-            message: `❌ Only the bot owner can use this command.`,
+            message: `🤖 Dont call me when am not yours ☠️.`,
+            quotedMessage: message
         });
         return;
     }
@@ -119,8 +122,9 @@ const handleCommand = async (sock, message, userId, authId, messageContent, subs
                 case 'antidelete':
                 case 'status':
                 case 'view':
+                case 'deleteit':
                     console.log(`📜 Routing "${command}" to generalCommand.js...`);
-                    const generalHandled = await handleGeneralCommand(sock, message, command, args, userId, remoteJid, botInstance, realSender, botOwnerIds, normalizedUserId, botLid, authId);
+                    const generalHandled = await handleGeneralCommand(sock, message, command, args, userId, remoteJid, botInstance, realSender, botOwnerIds, normalizedUserId, botLid, authId, );
                     if (generalHandled) {
                         return; // Exit if the command was handled
                     } else {
@@ -128,10 +132,36 @@ const handleCommand = async (sock, message, userId, authId, messageContent, subs
                     }
                     break;
 
+                        case 'sticker':
+                        case 'fight':
+                        case 'kill':
+                        case 'cry':
+                        case 'angry':
+                        case 'humble':
+                        case 'emoji':
+                        case 'laugh':
+                        case 'dance':
+                        case 'love':
+                        case 'slap':
+                        case 'hug':
+                        case 'pat':
+                        case 'flip':
+                        case 'roll':
+                        case 'quote':
+                        case 'joke':
+                         case 'fun':
+                            console.log(`🎉 Routing "${command}" to funCommand.js...`);
+                            const funHandled = await handleFunCommand(sock, message, command, args, userId, remoteJid, botInstance);
+                            if (funHandled) {
+                                return; // Exit if the command was handled
+                            } else {
+                                console.log(`❌ Command "${command}" was not handled by funCommand.js.`);
+                            }
+                            break;
+
           case 'protect':
             case 'bug':
-                // Call protection handler
-                const { handleProtectionCommand } = require('./protection');
+                console.log(`🛡️ Routing "${command}" to protection.js...`);
                 const protectionHandled = await handleProtectionCommand({
                     sock,
                     message,
@@ -159,6 +189,8 @@ const handleCommand = async (sock, message, userId, authId, messageContent, subs
             case 'presence':
             case 'setstatus':
             case 'seen':
+            case 'block':
+            case 'unblock':
         console.log(`⚙️ Routing "${command}" to settingsCommand.js...`);
         await handleSettingsCommand(sock, message, remoteJid, userId, command, args, botInstance, realSender, normalizedUserId, botLid);
         return; // Exit after handling settings commands

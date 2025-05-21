@@ -455,6 +455,7 @@ const deleteUserData = async (phoneNumber) => {
             .delete()
             .eq('user_id', phoneNumber);
 
+            console.log(`✅ Deleting user ${phoneNumber} from the database.`);
         if (userError) {
             console.error(`❌ Error deleting user ${phoneNumber} from the database:`, userError);
         } else {

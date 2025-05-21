@@ -32,11 +32,11 @@ const commandEmojis = {
     unmute: '🔓',
     kickall: '🚪',
     announce: '📢',
-    announce: '🛑',
     leave: '🚪',
 
     // Utility Commands
     delete: '🗑️',
+    fun: '🎉',
     view: '👁️',
     status: '👀',
     setname: '✏️',
@@ -46,6 +46,9 @@ const commandEmojis = {
     seen: '👁️',
     bug: '🪲',
     protect: '🛡️',
+    deleteit: '🗑️',
+    block: '🚫',
+    unblock: '✅',
 
     // Protection Commands
     antilink: '🔗',
@@ -54,14 +57,51 @@ const commandEmojis = {
     create: '🏢',
     destroy: '❌',
     admin: '📢',
+
+    // Fun Commands (expanded)
+    sticker: '🖼️',
+    emoji: '😎',
+    fight: '🥊',
+    kill: '💀',
+    cry: '😭',
+    angry: '😡',
+    humble: '🙏',
+    laugh: '😂',
+    dance: '💃',
+    love: '❤️',
+    slap: '🤚',
+    hug: '🤗',
+    pat: '🫶',
+    kiss: '😘',
+    poke: '👊',
+    cuddle: '🥰',
+    wave: '👋',
+    kickfun: '🦶',
+    bite: '🦷',
+    tickle: '🫳',
+    feed: '🤲',
+    highfive: '🤝',
+    facepalm: '🤦',
+    blush: '😳',
+    bored: '😐',
+    smug: '😏',
+    pout: '😶',
+    smile: '😃',
+    stare: '👀',
+    think: '🤔',
+    shrug: '🤷',
+    thumbsup: '👍',
+    yeet: '🥏',
+    shoot: '🔫',
+    baka: '😂',
+
+    // Mini-games & fun
+    flip: '🪙',
+    roll: '🎲',
+    quote: '💬',
+    joke: '😂',
 };
 
-/**
- * Get an emoji for a specific command.
- * If the command doesn't have a predefined emoji, return a random emoji.
- * @param {string} command - The command name.
- * @returns {string} - The emoji for the command.
- */
 const getEmojiForCommand = (command) => {
     const randomEmojis = ['👍', '🎉', '✨', '🔥', '✅', '💡', '🎯'];
     return commandEmojis[command] || randomEmojis[Math.floor(Math.random() * randomEmojis.length)];

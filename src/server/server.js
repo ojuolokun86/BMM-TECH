@@ -33,16 +33,17 @@ const createServer = () => {
   // Start a new session
   app.post('/api/start-session', validateToken, async (req, res) => {
     const { phoneNumber, authId } = req.body;
+    console.log('Received request to start session:', req.body);
     if (!phoneNumber || !authId) {
       return res.status(400).json({ error: 'Phone number and auth_id are required.' });
     }
 
     // Fetch subscription info
     const { data: token, error } = await supabase
-        .from('subscription_tokens')
-        .select('subscription_level, expiration_date')
-        .eq('user_auth_id', authId)
-        .single();
+    .from('subscription_tokens')
+    .select('subscription_level, expiration_date')
+    .eq('user_auth_id', authId)
+    .single();
 
     if (error || !token) {
         return res.status(401).json({ error: 'Invalid or expired token.' });
@@ -57,15 +58,27 @@ const createServer = () => {
     const botCount = bots ? bots.length : 0;
 
     // Set limits
-  let maxBots = 1, months = 1, days = 0;
+ let maxBots = 1, months = 1, days = 0;
   if (token.subscription_level === 'gold') { maxBots = 3; months = 2; }
   if (token.subscription_level === 'premium') { maxBots = 5; months = 3; }
   if (token.subscription_level === 'trier') { maxBots = 1; months = 0; days = 7; }
   if (token.subscription_level === 'basic') { maxBots = 1; months = 1; }
 
-    if (botCount >= maxBots) {
-        return res.status(403).json({ error: `Your subscription (${token.subscription_level}) allows only ${maxBots} bot(s).` });
+    if (!token || !token.subscription_level) {
+    return res.status(403).json({ error: 'No valid subscription found. Please subscribe to use the bot.' });
+}
+
+if (token.subscription_level === 'free') {
+    // Only allow one bot for free tier
+    if (botCount >= 1) {
+        return res.status(403).json({ error: 'Free tier allows only one bot. Please upgrade your subscription to add more.' });
     }
+}
+
+// ...existing code for gold, premium, etc...
+if (botCount >= maxBots) {
+    return res.status(403).json({ error: `Your subscription (${token.subscription_level}) allows only ${maxBots} bot(s).` });
+}
 
     // Continue with registration...
     await startNewSession(phoneNumber, io, authId);
@@ -76,8 +89,10 @@ const createServer = () => {
   app.delete('/api/delete-all-users', async (req, res) => {
     try {
       await deleteAllUsers();
+      console.log('✅ All users deleted successfully.');
       return res.status(200).json({ message: 'All users deleted successfully.' });
     } catch (error) {
+      console.error('❌ Error deleting all users:', error);
       return res.status(500).json({ error: 'Failed to delete all users.' });
     }
   });

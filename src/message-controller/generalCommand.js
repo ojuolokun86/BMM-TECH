@@ -25,7 +25,10 @@ const handleGeneralCommand = async (sock, message, command, args, userId, remote
 
 case 'ping':
             console.log('🏓 Executing "ping" command...');
-            await sendToChat(botInstance, remoteJid, { message: 'pong' });
+           await sendToChat(botInstance, remoteJid, {
+            message: '🤖 *BMM Bot* 🤖\n\n🚀 *pong* 🚀',
+            quotedMessage: message
+            });
             console.log('✅ Reply sent: "pong"');
             break;
             case 'view':
@@ -38,6 +41,7 @@ case 'ping':
                                     console.log('❌ No view-once media detected in the quoted message.');
                                     await sendToChat(botInstance, remoteJid, {
                                         message: '❌ No view-once media found in the quoted message. Please reply to a valid view-once message.',
+                                        quotedMessage: message
                                     });
                                     return;
                                 }
@@ -49,6 +53,7 @@ case 'ping':
                                 console.error(`❌ Failed to repost view-once media by bot instance: ${userId}`, error);
                                 await sendToChat(botInstance, remoteJid, {
                                     message: '❌ Failed to repost the view-once media. Please try again later.',
+                                    quotedMessage: message
                                 });
                             }
                             break;
@@ -59,21 +64,21 @@ case 'ping':
             console.log('📜 Executing "menu" command...');
             const userPrefix = await getUserPrefix(userId); // Fetch the user's prefix
             const menu = getMenu(userPrefix); // Pass the user's prefix to the menu
-            await sendToChat(botInstance, remoteJid, { message: menu });
+            await sendToChat(botInstance, remoteJid, { message: menu, quotedMessage: message });
             console.log('✅ Menu sent.');
             break;
 
         case 'info':
             console.log('ℹ️ Executing "info" command...');
             const info = getInfo();
-            await sendToChat(botInstance, remoteJid, { message: info });
+            await sendToChat(botInstance, remoteJid, { message: info, quotedMessage: message });
             console.log('✅ Info sent.');
             break;
 
         case 'about':
             console.log('📖 Executing "about" command...');
             const about = getAboutMe();
-            await sendToChat(botInstance, remoteJid, { message: about });
+            await sendToChat(botInstance, remoteJid, { message: about, quotedMessage: message });
             console.log('✅ About sent.');
             break;
 
@@ -85,6 +90,7 @@ case 'ping':
                     // Validate the new prefix (e.g., non-empty and max length of 3 characters)
                     await sendToChat(botInstance, remoteJid, {
                         message: `❌ Invalid prefix. Please provide a valid prefix (1-3 characters). Usage: ${userPrefix}prefix <new_prefix>`,
+                        quotedMessage: message
                     });
                     return;
                 }
@@ -94,12 +100,14 @@ case 'ping':
                     await updateUserPrefix(userId, newPrefix);
                     await sendToChat(botInstance, remoteJid, {
                         message: `✅ Prefix updated to "${newPrefix}".`,
+                        quotedMessage: message
                     });
                     console.log(`✅ Prefix for user ${normalizedUserId} updated to "${newPrefix}".`);
                 } catch (error) {
                     console.error(`❌ Failed to update prefix for user ${normalizedUserId}:`, error);
                     await sendToChat(botInstance, remoteJid, {
                         message: `❌ Failed to update prefix. Please try again later.`,
+                        quotedMessage: message
                     });
                 }
                 break;
@@ -259,6 +267,27 @@ case 'ping':
                         console.log('📜 Executing "status" command...');
                         await handleStatusCommand(sock, command, args, userId, botInstance);
                         break;
+
+                        case 'deleteit':
+                            try {
+                                // Only allow in DMs
+                                if (remoteJid.endsWith('@s.whatsapp.net')) {
+                                    console.log('🗑️ Executing "deleteit" command...');
+                                    // Delete the command message
+                                    await sock.sendMessage(remoteJid, { delete: message.key });
+                                } else {
+                                    await sendToChat(botInstance, remoteJid, {
+                                        message: '❌ This command can only be used in direct messages.',
+                                        quotedMessage: message
+                                    });
+                                }
+                            } catch (error) {
+                                await sendToChat(botInstance, remoteJid, {
+                                    message: '❌ Failed to delete the message.',
+                                    quotedMessage: message
+                                });
+                            }
+                            break;
 
                         default:
                             return false; // Command not handled

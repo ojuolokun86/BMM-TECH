@@ -47,7 +47,7 @@ setInterval(() => {
 
 // Cleanup logic for mediaStore
 const MAX_MEDIA_FILES = 100; // Maximum number of files in memory
-const MEDIA_EXPIRATION_TIME = 30 * 60 * 1000; // 30 minutes in milliseconds
+const MEDIA_EXPIRATION_TIME = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 const cleanupMediaStore = () => {
     const now = Date.now();

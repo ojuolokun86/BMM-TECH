@@ -43,7 +43,7 @@ const handleTagAllCommand = async (sock, message, remoteJid, userId, useFormatte
                     ? generateTagAllMessage(groupName, senderName, botOwnerName, additionalMessage, participants).text
                     : `${additionalMessage || '📢 Attention everyone!'}`;
 
-                await sendToChat(sock, remoteJid, { message: tagAllMessage, mentions });
+                await sendToChat(sock, remoteJid, { message: tagAllMessage, mentions, quotedMessage: message });
                 console.log('✅ Tag-all message sent as a reply to text.');
                 return true;
             }
@@ -59,7 +59,9 @@ const handleTagAllCommand = async (sock, message, remoteJid, userId, useFormatte
 
                 if (!mediaBuffer) {
                     console.error('❌ Failed to download media. Buffer is empty.');
-                    await sendToChat(sock, remoteJid, { message: '❌ Failed to download media. Please try again later.' });
+                    await sendToChat(sock, remoteJid, { message: '❌ Failed to download media. Please try again later.',
+                        quotedMessage: message
+                     });
                     return true;
                 }
 
@@ -74,7 +76,7 @@ const handleTagAllCommand = async (sock, message, remoteJid, userId, useFormatte
                     mentions,
                 };
 
-                await sendToChat(sock, remoteJid, mediaOptions);
+                await sendToChat(sock, remoteJid, mediaOptions, { quotedMessage: message });
                 console.log('✅ Tag-all message sent as a reply to media.');
                 return true;
             }
@@ -89,17 +91,17 @@ const handleTagAllCommand = async (sock, message, remoteJid, userId, useFormatte
         console.log('📢 Sending default tagall message...');
         if (useFormattedTagAll) {
             const { text, mentions } = generateTagAllMessage(groupName, senderName, botOwnerName, additionalMessage, participants);
-            await sendToChat(sock, remoteJid, { message: text, mentions });
+            await sendToChat(sock, remoteJid, { message: text, mentions, quotedMessage: message });
         } else {
             const plainMessage = `${additionalMessage || '📢 Attention everyone!'}`;
-            await sendToChat(sock, remoteJid, { message: plainMessage, mentions });
+            await sendToChat(sock, remoteJid, { message: plainMessage, mentions, quotedMessage: message });
         }
 
         console.log('✅ Tag-all message sent.');
         return true; // Command handled
     } catch (error) {
         console.error('❌ Failed to execute "tagall" command:', error);
-        await sendToChat(sock, remoteJid, { message: '❌ Failed to tag all members. Please try again later.' });
+        await sendToChat(sock, remoteJid, { message: '❌ Failed to tag all members. Please try again later.', quotedMessage: message });
         return false;
     }
 };

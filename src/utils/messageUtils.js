@@ -11,9 +11,10 @@ const { getEmojiForCommand } = require('./emojiReaction');
  * @param {Buffer} [options.media] - The media content to send (image, video, audio, document, or voice note).
  * @param {string} [options.caption] - The caption for the media message.
  * @param {string} [options.mediaType] - The type of media (image, video, audio, document, or voice note).
+ * @param {object} [options.quotedMessage] - The message to quote.
  */
 const sendToChat = async (botInstance, chatId, options = {}) => {
-    const { message, mentions = [], media, caption, mediaType } = options;
+    const { message, mentions = [], media, caption, mediaType, quotedMessage } = options;
 
     try {
         console.log(`🔍 Debugging "chatId" value:`, chatId);
@@ -37,7 +38,7 @@ const sendToChat = async (botInstance, chatId, options = {}) => {
 
         // Handle media messages
         if (media) {
-            const resolvedMediaType = mediaType || (media && 'image'); // Default to 'image' if mediaType is not explicitly provided
+            const resolvedMediaType = mediaType || (media && 'image');
             if (!['image', 'video', 'audio', 'document', 'voice'].includes(resolvedMediaType)) {
                 throw new Error('Invalid media type. Expected "image", "video", "audio", "document", or "voice".');
             }
@@ -49,7 +50,11 @@ const sendToChat = async (botInstance, chatId, options = {}) => {
             };
 
             if (resolvedMediaType === 'audio' || resolvedMediaType === 'voice') {
-                mediaPayload.ptt = resolvedMediaType === 'voice'; // Set as voice note if type is "voice"
+                mediaPayload.ptt = resolvedMediaType === 'voice';
+            }
+
+            if (quotedMessage) {
+                mediaPayload.quoted = quotedMessage;
             }
 
             await botInstance.sendMessage(chatId, mediaPayload);
@@ -63,7 +68,12 @@ const sendToChat = async (botInstance, chatId, options = {}) => {
                 throw new TypeError(`Expected "message" to be a string, but got ${typeof message}`);
             }
 
-            await botInstance.sendMessage(chatId, { text: message, mentions });
+            const textPayload = { text: message, mentions };
+            if (quotedMessage) {
+                textPayload.quoted = quotedMessage;
+            }
+
+            await botInstance.sendMessage(chatId, textPayload);
             console.log(`✅ Message sent to ${chatId}: ${message}`);
         }
     } catch (error) {

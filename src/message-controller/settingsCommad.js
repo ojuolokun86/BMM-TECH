@@ -248,6 +248,76 @@ const handleSettingsCommand = async (sock, message, remoteJid, userId, command, 
                             });
                         }
                         break;
+
+                    case 'block':
+                    try {
+                        let targetJid;
+                        if (args.length > 0) {
+                            // If a number is provided, normalize it to JID
+                            const num = args[0].replace(/[^0-9]/g, '');
+                            if (num.length > 5) {
+                                targetJid = num + '@s.whatsapp.net';
+                            }
+                        } else {
+                            // If no argument, block the user in the current DM
+                            if (remoteJid.endsWith('@s.whatsapp.net')) {
+                                targetJid = remoteJid;
+                            }
+                        }
+
+                        if (!targetJid) {
+                            await sendToChat(sock, remoteJid, {
+                                message: '❌ Please use `.block` in a DM or `.block <number>` to block a user.',
+                            });
+                            return;
+                        }
+
+                        await sock.updateBlockStatus(targetJid, 'block');
+                        await sendToChat(sock, remoteJid, {
+                            message: `✅ User ${targetJid.split('@')[0]} has been blocked.`,
+                        });
+                    } catch (error) {
+                        console.error('❌ Failed to block user:', error);
+                        await sendToChat(sock, remoteJid, {
+                            message: '❌ Failed to block user. Please try again later.',
+                        });
+                    }
+                    break;
+
+                    case 'unblock':
+                try {
+                    let targetJid;
+                    if (args.length > 0) {
+                        // If a number is provided, normalize it to JID
+                        const num = args[0].replace(/[^0-9]/g, '');
+                        if (num.length > 5) {
+                            targetJid = num + '@s.whatsapp.net';
+                        }
+                    } else {
+                        // If no argument, unblock the user in the current DM
+                        if (remoteJid.endsWith('@s.whatsapp.net')) {
+                            targetJid = remoteJid;
+                        }
+                    }
+
+                    if (!targetJid) {
+                        await sendToChat(sock, remoteJid, {
+                            message: '❌ Please use `.unblock` in a DM or `.unblock <number>` to unblock a user.',
+                        });
+                        return;
+                    }
+
+                    await sock.updateBlockStatus(targetJid, 'unblock');
+                    await sendToChat(sock, remoteJid, {
+                        message: `✅ User ${targetJid.split('@')[0]} has been unblocked.`,
+                    });
+                } catch (error) {
+                    console.error('❌ Failed to unblock user:', error);
+                    await sendToChat(sock, remoteJid, {
+                        message: '❌ Failed to unblock user. Please try again later.',
+                    });
+                }
+                break;
         }
     } catch (error) {
         console.error('❌ An error occurred while handling the settings command:', error);
