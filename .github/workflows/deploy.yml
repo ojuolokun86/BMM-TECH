@@ -1,0 +1,43 @@
+name: Build and Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}  
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  
+        aws-region: us-east-2
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build Docker image
+      run: |
+        IMAGE_TAG=${{ github.sha }}
+        docker build -t bmm-tech-bot:$IMAGE_TAG .
+        docker tag bmm-tech-bot:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/bmm-tech-bot:$IMAGE_TAG
+
+    - name: Push Docker image to ECR
+      run: |
+        IMAGE_TAG=${{ github.sha }}
+        docker push ${{ steps.login-ecr.outputs.registry }}/bmm-tech-bot:$IMAGE_TAG
+
+    - name: Deploy to ECS
+      run: |
+        IMAGE_TAG=${{ github.sha }}
+        aws ecs update-service --cluster bmm-tech-cluster --service bmm-tech-task-service-7ec204vo \
+          --force-new-deployment \
+          --region us-east-2
