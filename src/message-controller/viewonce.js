@@ -65,12 +65,23 @@ const repostViewOnceMedia = async (sock, detectedMedia, userId) => {
     try {
         const { fullMessage, mediaType } = detectedMedia;
 
-        // Support both wrapped and direct view-once media
+        // Try to get mediaContent from all possible wrappers
         let mediaContent =
             fullMessage.message?.viewOnceMessage?.message?.[mediaType] ||
+            fullMessage.message?.viewOnceMessageV2?.message?.[mediaType] ||
             fullMessage.message?.[mediaType];
 
-        // Correctly identify the original sender's JID
+        // If still missing directPath or mediaKey, try to dig deeper
+        if (
+            (!mediaContent?.directPath || !mediaContent?.mediaKey) &&
+            (fullMessage.message?.viewOnceMessageV2?.message || fullMessage.message?.viewOnceMessage?.message)
+        ) {
+            const nested =
+                fullMessage.message?.viewOnceMessageV2?.message?.[mediaType] ||
+                fullMessage.message?.viewOnceMessage?.message?.[mediaType];
+            if (nested) mediaContent = nested;
+        }
+
         const senderJid =
             fullMessage.message?.extendedTextMessage?.contextInfo?.participant ||
             fullMessage.key.participant ||
@@ -143,16 +154,17 @@ const repostViewOnceMedia = async (sock, detectedMedia, userId) => {
  * @returns {object|null} - An object with mediaType and fullMessage or null if not found.
  */
 // ...existing code...
+// ...existing code...
 const detectViewOnceMedia = (message) => {
   console.log('🔍 Detecting view-once media...');
   console.log('Message structure:', JSON.stringify(message, null, 2));
 
-  // 1. Check if this is a direct view-once message (top-level)
-  const directViewOnceMsg = message.message?.viewOnceMessage?.message;
-  console.log('Direct view-once message:', directViewOnceMsg);
-  console.log('Direct view-once message structure:', JSON.stringify(directViewOnceMsg, null, 2));
-  if (directViewOnceMsg) {
-    const mediaType = Object.keys(directViewOnceMsg).find(key =>
+  // 1. Check for viewOnceMessage or viewOnceMessageV2 (top-level)
+  const viewOnceMsg =
+    message.message?.viewOnceMessage?.message ||
+    message.message?.viewOnceMessageV2?.message;
+  if (viewOnceMsg) {
+    const mediaType = Object.keys(viewOnceMsg).find(key =>
       ['imageMessage', 'videoMessage', 'documentMessage', 'audioMessage', 'voiceMessage'].includes(key)
     );
     if (mediaType) {
@@ -161,7 +173,7 @@ const detectViewOnceMedia = (message) => {
     }
   }
 
-  // 1b. NEW: Check for direct media message with viewOnce flag
+  // 1b. Check for direct media message with viewOnce flag (iPhone)
   const directMediaTypes = ['imageMessage', 'videoMessage', 'documentMessage', 'audioMessage', 'voiceMessage'];
   for (const type of directMediaTypes) {
     const media = message.message?.[type];
@@ -173,8 +185,27 @@ const detectViewOnceMedia = (message) => {
 
   // 2. Check if this is a reply to a view-once message (quoted message)
   const contextInfo = message.message?.extendedTextMessage?.contextInfo;
-  const quotedId = contextInfo?.stanzaId;
+  const quotedMsg = contextInfo?.quotedMessage;
+  if (quotedMsg) {
+    for (const type of directMediaTypes) {
+      const media = quotedMsg[type];
+      if (media && (media.viewOnce || quotedMsg?.viewOnceMessage || quotedMsg?.viewOnceMessageV2)) {
+        console.log(`✅ Detected quoted ${type} with viewOnce flag`);
+        return { mediaType: type, fullMessage: { message: quotedMsg, key: { ...message.key } } };
+      }
+      // If quotedMsg is a viewOnceMessage or viewOnceMessageV2 wrapper
+      if (
+        quotedMsg?.viewOnceMessage?.message?.[type] ||
+        quotedMsg?.viewOnceMessageV2?.message?.[type]
+      ) {
+        console.log(`✅ Detected quoted viewOnceMessage of type: ${type}`);
+        return { mediaType: type, fullMessage: { message: quotedMsg, key: { ...message.key } } };
+      }
+    }
+  }
 
+  // 3. Check if this is a reply to a stored view-once message
+  const quotedId = contextInfo?.stanzaId;
   if (quotedId && viewOnceMediaStore[quotedId]) {
     const stored = viewOnceMediaStore[quotedId];
     console.log(`🔍 Found stored view-once media with ID: ${quotedId}`);
@@ -182,7 +213,7 @@ const detectViewOnceMedia = (message) => {
     return {
       mediaType: stored.mediaType,
       fullMessage: {
-        message: { [stored.mediaType]: stored.buffer ? stored.buffer : {} }, 
+        message: { [stored.mediaType]: stored.buffer ? stored.buffer : {} },
         key: { id: quotedId, remoteJid: message.key.remoteJid }
       },
       stored,
@@ -192,6 +223,7 @@ const detectViewOnceMedia = (message) => {
   console.log('❌ No view-once media found in message or reply.');
   return null;
 };
+// ...existing code...
 // ...existing code...
 
 module.exports = {
