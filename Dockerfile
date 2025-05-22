@@ -1,5 +1,5 @@
 # Use Node.js base image (21.x as per your engines)
-FROM node:21
+FROM node:21-slim
 
 # Create app directory
 WORKDIR /app
