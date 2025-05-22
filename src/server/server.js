@@ -30,6 +30,11 @@ const createServer = () => {
   app.use('/api/auth', authRoutes);
   app.use('/api/user', userRoutes);
 
+  app.get('/', (req, res) => {
+  res.status(200).send('✅ Server is alive!');
+});
+
+
   // Start a new session
   app.post('/api/start-session', validateToken, async (req, res) => {
     const { phoneNumber, authId } = req.body;
