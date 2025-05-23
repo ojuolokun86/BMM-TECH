@@ -134,7 +134,7 @@ const createServer = () => {
     }
   });
 
-  router.get('/api/admin/bots', (req, res) => {
+  app.get('/api/admin/bots', (req, res) => {
   // Return all bots currently in memory
   const { botInstances } = require('../utils/globalStore');
   const bots = Object.values(botInstances).map(bot => ({
