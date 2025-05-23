@@ -3,6 +3,7 @@ const { BufferJSON } = require('@whiskeysockets/baileys');
 const { botInstances } = require('../../utils/globalStore');
 const memory = require('./memory');
 require('dotenv').config();
+const { startNewSession } = require('../../users/userSession');
 const SERVER_ID = process.env.SERVER_ID; // Set this in your .env, e.g. SERVER_ID=flyio
 
 console.log('Supabase Auth State loaded successfully ✅');
