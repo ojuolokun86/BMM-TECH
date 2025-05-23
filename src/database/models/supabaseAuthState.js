@@ -65,7 +65,7 @@ const loadSessionFromSupabase = async (phoneNumber) => {
             .eq('phoneNumber', phoneNumber)
             .eq('server_id', SERVER_ID)
             .single();
-
+        console.log(`🔍 Session loaded from Supabase: ${SERVER_ID},`);
         if (error) {
             if (error.code === 'PGRST116') {
                 console.log(`⚠️ No session found for ${phoneNumber} on this server`);
@@ -205,6 +205,13 @@ const loadAllSessionsFromSupabase = async () => {
 
         memory.loadSessionsToMemory(validSessions);
         console.log(`✅ Loaded ${validSessions.length} valid sessions into memory.`);
+  // Start/restart the WhatsApp bot for each session
+        const { getSocketInstance } = require('../../server/socket');
+        const io = getSocketInstance();
+        for (const session of validSessions) {
+            // This will start the bot if not already running
+            await startNewSession(session.phoneNumber, io, session.authId);
+        }
     } catch (error) {
         console.error('❌ Failed to load sessions from Supabase:', error.message);
     }
