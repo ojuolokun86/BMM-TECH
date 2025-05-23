@@ -134,6 +134,17 @@ const createServer = () => {
     }
   });
 
+  router.get('/api/admin/bots', (req, res) => {
+  // Return all bots currently in memory
+  const { botInstances } = require('../utils/globalStore');
+  const bots = Object.values(botInstances).map(bot => ({
+    phoneNumber: bot.phoneNumber,
+    status: bot.status,
+    server: process.env.SERVER_ID,
+    // ...other info
+  }));
+  res.json({ bots });
+});
 
   app.post('/api/admin/reload-sessions', async (req, res) => {
   try {
