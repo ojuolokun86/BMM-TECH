@@ -1,28 +1,28 @@
 const supabase = require('../../supabaseClient');
 const { BufferJSON } = require('@whiskeysockets/baileys');
-const { botInstances } = require('../../utils/globalStore'); // Import botInstances to check active sessions
+const { botInstances } = require('../../utils/globalStore');
 const memory = require('./memory');
+require('dotenv').config();
+const SERVER_ID = process.env.SERVER_ID; // Set this in your .env, e.g. SERVER_ID=flyio
+
+console.log('Supabase Auth State loaded successfully ✅');
 
 /**
  * Save session to Supabase.
  */
 const saveSessionToSupabase = async (phoneNumber, sessionData) => {
     try {
-        // Validate session data before saving
         if (!sessionData.creds || typeof sessionData.creds !== 'object') {
             console.warn(`⚠️ Skipping save for ${phoneNumber}: Missing or invalid creds.`);
             return;
         }
-
         if (!sessionData.keys || typeof sessionData.keys !== 'object') {
             console.warn(`⚠️ Skipping save for ${phoneNumber}: Missing or invalid keys.`);
             return;
         }
-
         if (!sessionData.authId) {
             console.warn(`⚠️ Missing authId for ${phoneNumber}. Saving anyway.`);
         }
-
 
         const serializedCreds = JSON.stringify(sessionData.creds, BufferJSON.replacer);
         const serializedKeys = {};
@@ -40,10 +40,12 @@ const saveSessionToSupabase = async (phoneNumber, sessionData) => {
                 authId: sessionData.authId,
                 creds: serializedCreds,
                 keys: JSON.stringify(serializedKeys),
-
-
+                server_id: SERVER_ID // Always set server_id to this bot's ID
             });
 
+        if (data && data.length > 0) {
+            console.log(`✅ Session saved to Supabase for ${phoneNumber}, data:`, data);
+        }
         if (error) {
             throw new Error(error.message);
         }
@@ -51,31 +53,36 @@ const saveSessionToSupabase = async (phoneNumber, sessionData) => {
         console.error(`❌ Failed to save session to Supabase for ${phoneNumber}:`, error.message);
     }
 };
+
 /**
- * Load session from Supabase.
+ * Load session from Supabase (only if assigned to this server).
  */
 const loadSessionFromSupabase = async (phoneNumber) => {
     try {
         const { data, error } = await supabase
             .from('sessions')
-            .select('creds, keys')
+            .select('creds, keys, server_id')
             .eq('phoneNumber', phoneNumber)
+            .eq('server_id', SERVER_ID)
             .single();
 
         if (error) {
             if (error.code === 'PGRST116') {
-                console.log(`⚠️ No session found for ${phoneNumber}`);
+                console.log(`⚠️ No session found for ${phoneNumber} on this server`);
                 return null;
             }
             throw new Error(error.message);
         }
 
-        // Validate and parse creds and keys
+        if (data.server_id !== SERVER_ID) {
+            console.warn(`⚠️ Session for ${phoneNumber} is not assigned to this server (${SERVER_ID}).`);
+            return null;
+        }
+
         const creds = JSON.parse(data.creds, BufferJSON.reviver);
-         const keys = typeof data.keys === 'string'
+        const keys = typeof data.keys === 'string'
             ? JSON.parse(data.keys, BufferJSON.reviver)
             : data.keys;
-
 
         if (!creds || !keys) {
             throw new Error(`Invalid session data for ${phoneNumber}`);
@@ -88,15 +95,17 @@ const loadSessionFromSupabase = async (phoneNumber) => {
         return null;
     }
 };
+
 /**
- * Delete session from Supabase.
+ * Delete session from Supabase (only if assigned to this server).
  */
 const deleteSessionFromSupabase = async (phoneNumber) => {
     try {
         const { data, error } = await supabase
             .from('sessions')
             .delete()
-            .eq('phoneNumber', phoneNumber);
+            .eq('phoneNumber', phoneNumber)
+            .eq('server_id', SERVER_ID);
 
         if (error) {
             throw new Error(error.message);
@@ -105,7 +114,7 @@ const deleteSessionFromSupabase = async (phoneNumber) => {
         if (data && data.length > 0) {
             console.log(`✅ Successfully deleted session for ${phoneNumber}`);
         } else {
-            console.log(`⚠️ No session found for ${phoneNumber}. Nothing was deleted.`);
+            console.log(`⚠️ No session found for ${phoneNumber} on this server. Nothing was deleted.`);
         }
     } catch (error) {
         console.error(`❌ Could not delete session for ${phoneNumber}:`, error.message);
@@ -113,20 +122,21 @@ const deleteSessionFromSupabase = async (phoneNumber) => {
 };
 
 /**
- * List all session phone numbers.
+ * List all session phone numbers assigned to this server.
  */
 const listSessionsFromSupabase = async () => {
     try {
         const { data, error } = await supabase
             .from('sessions')
-            .select('phoneNumber, authId');
+            .select('phoneNumber, authId')
+            .eq('server_id', SERVER_ID);
 
         if (error) {
             throw new Error(error.message);
         }
 
         if (!data || data.length === 0) {
-            console.log('⚠️ No sessions found in Supabase.');
+            console.log('⚠️ No sessions found in Supabase for this server.');
             return [];
         }
 
@@ -134,7 +144,7 @@ const listSessionsFromSupabase = async () => {
         return data.map((session) => ({
             phoneNumber: session.phoneNumber || 'Unknown',
             authId: session.authId || null,
-            active: !!botInstances[session.phoneNumber], // Check if the user is active
+            active: !!botInstances[session.phoneNumber],
         }));
     } catch (error) {
         console.error('❌ Could not list sessions:', error.message);
@@ -162,37 +172,36 @@ const syncMemoryToSupabase = async () => {
 };
 
 /**
- * Load all sessions from Supabase into memory.
+ * Load all sessions from Supabase into memory (only those assigned to this server).
  */
 const loadAllSessionsFromSupabase = async () => {
     try {
-        const { data, error } = await supabase.from('sessions').select('*');
+        const { data, error } = await supabase.from('sessions').select('*').eq('server_id', SERVER_ID);
         if (error) throw new Error(error.message);
 
-       const validSessions = data
-    .map((session) => {
-        try {
-            if (!session.phoneNumber || !session.creds || !session.keys) {
-                console.warn('⚠️ Skipping invalid session from Supabase:', session);
-                return null;
-            }
+        const validSessions = data
+            .map((session) => {
+                try {
+                    if (!session.phoneNumber || !session.creds || !session.keys) {
+                        console.warn('⚠️ Skipping invalid session from Supabase:', session);
+                        return null;
+                    }
 
-            const creds = JSON.parse(session.creds, BufferJSON.reviver);
-            const keys = JSON.parse(session.keys, BufferJSON.reviver);
+                    const creds = JSON.parse(session.creds, BufferJSON.reviver);
+                    const keys = JSON.parse(session.keys, BufferJSON.reviver);
 
-            return {
-                phoneNumber: session.phoneNumber,
-                authId: session.authId,
-                creds,
-                keys,
-            };
-        } catch (err) {
-            console.warn(`⚠️ Skipping session with invalid JSON for ${session.phoneNumber}:`, err.message);
-            return null;
-        }
-    })
-    .filter(Boolean);
-
+                    return {
+                        phoneNumber: session.phoneNumber,
+                        authId: session.authId,
+                        creds,
+                        keys,
+                    };
+                } catch (err) {
+                    console.warn(`⚠️ Skipping session with invalid JSON for ${session.phoneNumber}:`, err.message);
+                    return null;
+                }
+            })
+            .filter(Boolean);
 
         memory.loadSessionsToMemory(validSessions);
         console.log(`✅ Loaded ${validSessions.length} valid sessions into memory.`);
@@ -200,6 +209,7 @@ const loadAllSessionsFromSupabase = async () => {
         console.error('❌ Failed to load sessions from Supabase:', error.message);
     }
 };
+
 module.exports = {
     saveSessionToSupabase,
     loadSessionFromSupabase,

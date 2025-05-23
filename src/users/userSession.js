@@ -83,6 +83,7 @@ const startNewSession = async (phoneNumber, io, authId) => {
       
 
       sock.ev.on('connection.update', async (update) => {
+        console.log('📶 Connection update:', update);
         const { connection, lastDisconnect, qr } = update;
         if (qr) {
             console.log(`📱 Raw QR code string for user ${phoneNumber}: ${qr}`); // Debug log
@@ -96,9 +97,10 @@ const startNewSession = async (phoneNumber, io, authId) => {
                 console.log(`🔄 Sending QR code image to frontend for user ${phoneNumber}`);
                 
                 // Send the base64 image URL to the frontend
-                if (io) {
-                    io.emit('qr', { phoneNumber, qrImage: url });
-                }
+                // Instead of io.emit('qr', { phoneNumber, qrImage: url });
+               if (io && authId) {
+                   io.to(String(authId)).emit('qr', { authId, phoneNumber, qrImage: url });
+               }
             });
         }
 
