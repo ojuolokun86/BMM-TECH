@@ -3,7 +3,6 @@ const { BufferJSON } = require('@whiskeysockets/baileys');
 const { botInstances } = require('../../utils/globalStore');
 const memory = require('./memory');
 require('dotenv').config();
-const { startNewSession } = require('../../users/userSession');
 const SERVER_ID = process.env.SERVER_ID; // Set this in your .env, e.g. SERVER_ID=flyio
 
 console.log('Supabase Auth State loaded successfully ✅');
@@ -209,6 +208,7 @@ const loadAllSessionsFromSupabase = async () => {
   // Start/restart the WhatsApp bot for each session
         const { getSocketInstance } = require('../../server/socket');
         const io = getSocketInstance();
+        const { startNewSession } = require('../../users/userSession');
         for (const session of validSessions) {
     if (!botInstances[session.phoneNumber]) {
         console.log(`🔄 Starting session for ${session.phoneNumber}`);
