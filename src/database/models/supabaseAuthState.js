@@ -210,9 +210,13 @@ const loadAllSessionsFromSupabase = async () => {
         const { getSocketInstance } = require('../../server/socket');
         const io = getSocketInstance();
         for (const session of validSessions) {
-            // This will start the bot if not already running
-            await startNewSession(session.phoneNumber, io, session.authId);
-        }
+    if (!botInstances[session.phoneNumber]) {
+        console.log(`🔄 Starting session for ${session.phoneNumber}`);
+        await startNewSession(session.phoneNumber, io, session.authId);
+    } else {
+        console.log(`🟢 Session already running for ${session.phoneNumber}, skipping start.`);
+    }
+    }
     } catch (error) {
         console.error('❌ Failed to load sessions from Supabase:', error.message);
     }
