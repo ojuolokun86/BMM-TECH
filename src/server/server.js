@@ -106,9 +106,10 @@ const createServer = () => {
     }
 
     if (botCount >= maxBots) {
-        console.error(`❌ [start-session] Subscription (${token.subscription_level}) allows only ${maxBots} bot(s).`);
-        return res.status(403).json({ error: `Your subscription (${token.subscription_level}) allows only ${maxBots} bot(s).` });
-    }
+    const msg = `You have used all your bot slots for your "${token.subscription_level}" subscription (${maxBots} bot${maxBots > 1 ? 's' : ''}). If you want to remove a bot, please contact the developer.`;
+    console.error(`❌ [start-session] ${msg}`);
+    return res.status(403).json({ error: msg });
+  }
 
     // Continue with registration...
     try {
@@ -132,6 +133,16 @@ const createServer = () => {
       return res.status(500).json({ error: 'Failed to delete all users.' });
     }
   });
+
+
+  app.post('/api/admin/reload-sessions', async (req, res) => {
+  try {
+    await loadAllSessionsFromSupabase();
+    res.json({ success: true, message: 'Sessions reloaded from Supabase.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, '0.0.0.0', () => {
