@@ -1,7 +1,7 @@
 const { io } = require('socket.io-client');
 
 // Use your LM's public URL
-const LM_URL = 'https://8a46-197-211-59-122.ngrok-free.app';
+const LM_URL = ' https://7e73-197-211-59-122.ngrok-free.app';
 
 const lmSocket = io(`${LM_URL}/bot-server`, {
   transports: ['websocket', 'polling'],
