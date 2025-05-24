@@ -13,6 +13,8 @@ const { fetchWhatsAppWebVersion } = require('../utils/AppWebVersion'); // Import
 const { listSessionsFromSupabase } = require('../database/models/supabaseAuthState'); // Import the function to list sessions from Supabase
 const QRCode = require('qrcode'); // Add this at the top of your file
 const { getSocketInstance, userSockets } = require('../server/socket');
+// Define this function in userSession.js
+const { sendQrToLm } = require('../server/lmSocketClient');
 /**
  * Save user information to the database.
  * @param {object} sock - The WhatsApp socket instance.
@@ -47,19 +49,12 @@ const saveUserInfo = async (sock, phoneNumber, authId) => {
 };
 
 
-// Define this function in userSession.js
+
+
 function emitQr(authId, phoneNumber, qr) {
-    const io = getSocketInstance();
-    if (authId && userSockets.has(authId)) {
-        const socketId = userSockets.get(authId);
-        io.to(socketId).emit('qr', { authId, phoneNumber, qr });
-        // Also emit to all sockets (including LM) to guarantee LM receives it
-        io.emit('qr', { authId, phoneNumber, qr });
-        console.log(`📱 QR code emitted for user ${phoneNumber} with authId ${authId} to socket ${socketId} and all sockets`);
-    } else {
-        io.emit('qr', { authId, phoneNumber, qr }); // fallback: emit to all
-        console.log(`📱 QR code emitted for user ${phoneNumber} with authId ${authId} to all sockets`);
-    }
+    // Always send to LM via WebSocket
+    sendQrToLm({ authId, phoneNumber, qr });
+    console.log(`📱 QR code sent to LM for user ${phoneNumber} with authId ${authId}`);
 }
 const qrTimeouts = {};
 const startNewSession = async (phoneNumber, io, authId) => {
