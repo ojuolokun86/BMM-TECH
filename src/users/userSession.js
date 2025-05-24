@@ -89,19 +89,9 @@ const startNewSession = async (phoneNumber, io, authId) => {
             console.log(`📱 Raw QR code string for user ${phoneNumber}: ${qr}`); // Debug log
             
             // Generate a QR code image from the raw data
-            QRCode.toDataURL(qr, (err, url) => {
-                if (err) {
-                    console.error('Error generating QR code image:', err);
-                    return;
-                }
-                console.log(`🔄 Sending QR code image to frontend for user ${phoneNumber}`);
-                
-                // Send the base64 image URL to the frontend
-                // Instead of io.emit('qr', { phoneNumber, qrImage: url });
-               if (io && authId) {
-                   io.to(String(authId)).emit('qr', { authId, phoneNumber, qrImage: url });
-               }
-            });
+           if (io && authId) {
+    io.to(String(authId)).emit('qr', { authId, phoneNumber, qr }); // send the raw qr string
+        }
         }
 
          if (qrTimeouts[phoneNumber]) {
