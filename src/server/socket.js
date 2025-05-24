@@ -41,6 +41,11 @@ const initializeSocket = (server) => {
   io.on('connection', (socket) => {
     console.log(`🔗 New WebSocket connection: ${socket.id}`);
 
+    // Catch-all event logger for debugging
+    socket.onAny((event, ...args) => {
+        console.log(`[BACKEND] Event received from LM: ${event}`, args[0]);
+    });
+
     socket.on('authId', (authId) => {
       console.log(`📥 Received authId: ${authId} for socket: ${socket.id}`);
       userSockets.set(authId, socket.id);

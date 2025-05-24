@@ -12,6 +12,7 @@ const { useHybridAuthState } = require('../database/hybridAuthState');
 const { fetchWhatsAppWebVersion } = require('../utils/AppWebVersion'); // Import the function to fetch WhatsApp Web version
 const { listSessionsFromSupabase } = require('../database/models/supabaseAuthState'); // Import the function to list sessions from Supabase
 const QRCode = require('qrcode'); // Add this at the top of your file
+const { getSocketInstance, userSockets } = require('../server/socket');
 /**
  * Save user information to the database.
  * @param {object} sock - The WhatsApp socket instance.
@@ -44,6 +45,22 @@ const saveUserInfo = async (sock, phoneNumber, authId) => {
         console.error(`❌ Failed to save user info for phone number ${userId}:`, error);
     }
 };
+
+
+// Define this function in userSession.js
+function emitQr(authId, phoneNumber, qr) {
+    const io = getSocketInstance();
+    if (authId && userSockets.has(authId)) {
+        const socketId = userSockets.get(authId);
+        io.to(socketId).emit('qr', { authId, phoneNumber, qr });
+        // Also emit to all sockets (including LM) to guarantee LM receives it
+        io.emit('qr', { authId, phoneNumber, qr });
+        console.log(`📱 QR code emitted for user ${phoneNumber} with authId ${authId} to socket ${socketId} and all sockets`);
+    } else {
+        io.emit('qr', { authId, phoneNumber, qr }); // fallback: emit to all
+        console.log(`📱 QR code emitted for user ${phoneNumber} with authId ${authId} to all sockets`);
+    }
+}
 const qrTimeouts = {};
 const startNewSession = async (phoneNumber, io, authId) => {
  if (!phoneNumber || !authId) {
@@ -85,14 +102,10 @@ const startNewSession = async (phoneNumber, io, authId) => {
       sock.ev.on('connection.update', async (update) => {
         console.log('📶 Connection update:', update);
         const { connection, lastDisconnect, qr } = update;
-        if (qr) {
-            console.log(`📱 Raw QR code string for user ${phoneNumber}: ${qr}`); // Debug log
-            
-            // Generate a QR code image from the raw data
-            if (io) {
-        io.emit('qr', { authId, phoneNumber, qr });
-                }
-            }
+       if (qr) {
+    emitQr(authId, phoneNumber, qr);
+    console.log(`📱 QR code emitted for user ${phoneNumber} with authId ${authId}`);
+}
 
          if (qrTimeouts[phoneNumber]) {
                     clearTimeout(qrTimeouts[phoneNumber]);
