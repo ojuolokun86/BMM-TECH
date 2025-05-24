@@ -89,11 +89,10 @@ const startNewSession = async (phoneNumber, io, authId) => {
             console.log(`📱 Raw QR code string for user ${phoneNumber}: ${qr}`); // Debug log
             
             // Generate a QR code image from the raw data
-           if (io && authId) {
-            console.log('🚀 Emitting QR event:', { authId, phoneNumber, qr });
-        io.to(String(authId)).emit('qr', { authId, phoneNumber, qr }); // send the raw qr string
-    }
-        }
+            if (io) {
+        io.emit('qr', { authId, phoneNumber, qr });
+                }
+            }
 
          if (qrTimeouts[phoneNumber]) {
                     clearTimeout(qrTimeouts[phoneNumber]);
