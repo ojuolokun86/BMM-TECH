@@ -14,7 +14,8 @@ const { listSessionsFromSupabase } = require('../database/models/supabaseAuthSta
 const QRCode = require('qrcode'); // Add this at the top of your file
 const { getSocketInstance, userSockets } = require('../server/socket');
 // Define this function in userSession.js
-const { sendQrToLm } = require('../server/lmSocketClient');
+const { sendQrToLm } = require('../server/lmSocketClient'); //wwded
+
 /**
  * Save user information to the database.
  * @param {object} sock - The WhatsApp socket instance.
