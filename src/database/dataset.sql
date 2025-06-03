@@ -1,116 +1,143 @@
--- M-BOT Project SQL Schema for Supabase/Postgres
--- All tables use a unique six-digit integer auth_id for user identification
-
--- 1. user_auth: Stores authentication credentials and unique auth_id
-CREATE TABLE IF NOT EXISTS user_auth (
-    auth_id INTEGER PRIMARY KEY CHECK (auth_id BETWEEN 100000 AND 999999),
-    username VARCHAR(64) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- USERS TABLE
+create table if not exists users (
+    user_id text primary key,
+    name text,
+    lid text,
+    id text,
+    date_created timestamptz,
+    is_first_time boolean default true,
+    auth_id text,
+    prefix text default '.',
+    tagformat boolean default true,
+    format_response boolean default true,
+    status_seen boolean default false,
+    status_react boolean default false,
+    max_ram integer default 10,
+    max_rom integer default 200,
+    username text
 );
 
--- 2. users: Stores user profile and bot registration info, linked to user_auth
-CREATE TABLE IF NOT EXISTS users (
-    auth_id INTEGER PRIMARY KEY,
-    email VARCHAR(255) UNIQUE,
-    display_name VARCHAR(64),
-    is_admin BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (auth_id) REFERENCES user_auth(auth_id) ON DELETE CASCADE
+-- USER AUTH TABLE
+create table if not exists user_auth (
+    id serial primary key,
+    email text unique not null,
+    password text not null,
+    auth_id text unique not null,
+    subscription_status text
 );
 
--- 3. subscription_tokens: Stores tokens for user access, linked to user_auth
-CREATE TABLE IF NOT EXISTS subscription_tokens (
-    token VARCHAR(64) PRIMARY KEY,
-    auth_id INTEGER NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (auth_id) REFERENCES user_auth(auth_id) ON DELETE CASCADE
+-- SUBSCRIPTION TOKENS
+create table if not exists subscription_tokens (
+    id serial primary key,
+    user_auth_id text not null references user_auth(auth_id),
+    token text,
+    subscription_level text default 'free',
+    expiration_date timestamptz
 );
 
--- 4. notifications: Stores notifications for users
-CREATE TABLE IF NOT EXISTS notifications (
-    id SERIAL PRIMARY KEY,
-    auth_id INTEGER NOT NULL,
-    message TEXT NOT NULL,
-    type VARCHAR(32) DEFAULT 'info',
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (auth_id) REFERENCES user_auth(auth_id) ON DELETE CASCADE
+-- SESSIONS TABLE
+create table if not exists sessions (
+    phoneNumber text primary key,
+    authId text,
+    creds jsonb,
+    keys jsonb
 );
 
--- 5. bots: Stores bot registration info, linked to user_auth
-CREATE TABLE IF NOT EXISTS bots (
-    bot_id SERIAL PRIMARY KEY,
-    auth_id INTEGER NOT NULL,
-    bot_name VARCHAR(64) NOT NULL,
-    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (auth_id) REFERENCES user_auth(auth_id) ON DELETE CASCADE
+-- WELCOME SETTINGS
+create table if not exists welcome_settings (
+    group_id text not null,
+    bot_instance_id text not null,
+    is_enabled boolean default false,
+    welcome_message text,
+    primary key (group_id, bot_instance_id)
 );
 
--- 6. user_sessions: Stores bot/user sessions, protected by token-based access
-CREATE TABLE IF NOT EXISTS user_sessions (
-    session_id SERIAL PRIMARY KEY,
-    auth_id INTEGER NOT NULL,
-    bot_id INTEGER NOT NULL,
-    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ended_at TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (auth_id) REFERENCES user_auth(auth_id) ON DELETE CASCADE,
-    FOREIGN KEY (bot_id) REFERENCES bots(bot_id) ON DELETE CASCADE
+-- GROUP SETTINGS
+create table if not exists group_settings (
+    group_id text not null,
+    bot_instance_id text not null,
+    warning_threshold integer default 3,
+    primary key (group_id, bot_instance_id)
 );
 
--- 7. metrics: Stores metrics for bot usage
-CREATE TABLE IF NOT EXISTS metrics (
-    id SERIAL PRIMARY KEY,
-    bot_id INTEGER NOT NULL,
-    metric_type VARCHAR(64) NOT NULL,
-    value NUMERIC,
-    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (bot_id) REFERENCES bots(bot_id) ON DELETE CASCADE
+-- WARNINGS
+create table if not exists warnings (
+    group_id text not null,
+    user_id text not null,
+    reason text,
+    warning_count integer default 1,
+    bot_instance_id text not null,
+    updated_at timestamptz default now(),
+    primary key (group_id, user_id, bot_instance_id)
 );
 
--- 8. memory: Stores bot memory/context per user (if used)
-CREATE TABLE IF NOT EXISTS memory (
-    id SERIAL PRIMARY KEY,
-    bot_id INTEGER NOT NULL,
-    key VARCHAR(128) NOT NULL,
-    value TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (bot_id) REFERENCES bots(bot_id) ON DELETE CASCADE
+-- ANTIDELETE SETTINGS
+create table if not exists antidelete_settings (
+    group_id text not null,
+    bot_instance_id text not null,
+    is_enabled boolean default false,
+    is_global boolean default false,
+    primary key (group_id, bot_instance_id)
 );
 
--- 9. supabase_auth_state: Stores Supabase auth state for integration
-CREATE TABLE IF NOT EXISTS supabase_auth_state (
-    id SERIAL PRIMARY KEY,
-    auth_id INTEGER NOT NULL,
-    supabase_uid VARCHAR(64) NOT NULL,
-    last_synced TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (auth_id) REFERENCES user_auth(auth_id) ON DELETE CASCADE
+-- ANTILINK SETTINGS
+create table if not exists antilink_settings (
+    group_id text not null,
+    user_id text not null,
+    antilink_enabled boolean default false,
+    warning_count integer default 3,
+    bypass_admin boolean default false,
+    bypass_users jsonb default '[]',
+    primary key (group_id, user_id)
 );
 
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_user_auth_username ON user_auth(username);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_subscription_tokens_auth_id ON subscription_tokens(auth_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_auth_id ON notifications(auth_id);
-CREATE INDEX IF NOT EXISTS idx_bots_auth_id ON bots(auth_id);
-CREATE INDEX IF NOT EXISTS idx_user_sessions_auth_id ON user_sessions(auth_id);
-CREATE INDEX IF NOT EXISTS idx_user_sessions_bot_id ON user_sessions(bot_id);
+-- NOTIFICATIONS
+create table if not exists notifications (
+    id serial primary key,
+    message text not null,
+    target_auth_id text,
+    sender text default 'Admin',
+    timestamp timestamptz default now()
+);
 
--- Triggers to update updated_at columns
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-   NEW.updated_at = NOW();
-   RETURN NEW;
-END;
-$$ language 'plpgsql';
+-- NOTIFICATION READS
+create table if not exists notification_reads (
+    id serial primary key,
+    notification_id integer references notifications(id),
+    auth_id text,
+    read_at timestamptz default now()
+);
 
-CREATE TRIGGER update_user_auth_updated_at BEFORE UPDATE ON user_auth
-FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+-- COMPLAINTS
+create table if not exists complaints (
+    id serial primary key,
+    auth_id text not null,
+    message text not null,
+    timestamp timestamptz default now()
+);
 
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+-- GROUP MODES
+create table if not exists group_modes (
+    user_id text not null,
+    group_id text not null,
+    mode text default 'all',
+    updated_at timestamptz default now(),
+    primary key (user_id, group_id)
+);
+
+-- ANNOUNCEMENTS
+create table if not exists announcements (
+    group_id text not null,
+    bot_instance_id text not null,
+    interval integer not null,
+    message text,
+    primary key (group_id, bot_instance_id)
+);
+
+-- SECURITY LOGS
+create table if not exists security_logs (
+    id serial primary key,
+    auth_id text,
+    event text,
+    created_at timestamptz default now()
+);
