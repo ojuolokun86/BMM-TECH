@@ -1,5 +1,4 @@
 const axios = require('axios');
-const { createCanvas, registerFont } = require('canvas');
 const path = require('path');
 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 const { sendToChat } = require('../utils/messageUtils');
@@ -7,7 +6,6 @@ const { getFunMenu } = require('../utils/funMenu');
 const { prefix } = require('../database/userPrefix');
 const sharp = require('sharp')
 
-registerFont(path.join(__dirname, '../assets/NotoColorEmoji-Regular.ttf'), { family: 'NotoColorEmoji' });
 
 
 /**

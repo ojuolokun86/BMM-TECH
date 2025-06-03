@@ -69,10 +69,7 @@ const handleCommand = async (sock, message, userId, authId, messageContent, subs
         console.log(`✅ Reaction sent for command "${command}" in ${remoteJid}`);
                         // Restrict all commands to the bot owner
     if (realSender !== normalizedUserId && realSender !== botLid) {
-        await sendToChat(botInstance, remoteJid, {
-            message: `🤖 Dont call me when am not yours ☠️.`,
-            quotedMessage: message
-        });
+        console.log(`🤖 not your bot instance`);
         return;
     }
     // Handle specific commands
@@ -133,20 +130,39 @@ const handleCommand = async (sock, message, userId, authId, messageContent, subs
                     break;
 
                         case 'sticker':
-                        case 'fight':
-                        case 'kill':
-                        case 'cry':
-                        case 'angry':
-                        case 'humble':
                         case 'emoji':
-                        case 'laugh':
+                        case 'baka':
+                        case 'bite':
+                        case 'blush':
+                        case 'bored':
+                        case 'cry':
+                        case 'cuddle':
                         case 'dance':
-                        case 'love':
-                        case 'slap':
+                        case 'facepalm':
+                        case 'feed':
+                        case 'happy':
+                        case 'highfive':
                         case 'hug':
+                        case 'kick':
+                        case 'kill':
+                        case 'kiss':
+                        case 'laugh':
+                        case 'lick':
                         case 'pat':
-                        case 'flip':
-                        case 'roll':
+                        case 'poke':
+                        case 'pout':
+                        case 'shoot':
+                        case 'shrug':
+                        case 'slap':
+                        case 'smile':
+                        case 'smug':
+                        case 'stare':
+                        case 'think':
+                        case 'thumbsup':
+                        case 'tickle':
+                        case 'wave':
+                        case 'wink':
+                        case 'yeet':
                         case 'quote':
                         case 'joke':
                          case 'fun':
@@ -191,6 +207,7 @@ const handleCommand = async (sock, message, userId, authId, messageContent, subs
             case 'seen':
             case 'block':
             case 'unblock':
+            case 'logout':
         console.log(`⚙️ Routing "${command}" to settingsCommand.js...`);
         await handleSettingsCommand(sock, message, remoteJid, userId, command, args, botInstance, realSender, normalizedUserId, botLid);
         return; // Exit after handling settings commands
