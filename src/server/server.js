@@ -1,8 +1,8 @@
-console.log = function () {};
+//console.log = function () {};
 // Suppress console logs in production
-// if (process.env.NODE_ENV === 'production') {
-//     console.log = function () {};
-// }
+if (process.env.NODE_ENV === 'production') {
+    console.log = function () {};
+}
 const events = require('events');
 events.EventEmitter.defaultMaxListeners = 70;
 console.log('🔧 Increased default max listeners to 70 for EventEmitter');
