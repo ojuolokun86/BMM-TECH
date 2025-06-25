@@ -38,9 +38,57 @@ const retryOperation = async (operation, description, retries = 3) => {
     }
 };
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Unhandled Promise Rejection:', reason);
+process.on('unhandledRejection', async (err) => {
+    console.error('❌ Unhandled Promise Rejection:', err);
+    
+    await healSessionForError(err, 'global trap');
 });
+
+process.on('uncaughtException', async (err) => {
+    console.error('🔥 Uncaught Exception:', err);
+    console.info('This is an uncaught exception, attempting to heal session...');
+    await healSessionForError(err, 'uncaught exception');
+});
+
+async function healSessionForError(err, context = 'global') {
+    const msg = err?.message || '';
+    if (!msg.includes('SessionError: No open session')) return;
+
+    const userId = extractUserIdFromError(err);
+    console.log(`[${context}] Extracted userId:`, userId);
+    
+
+    if (userId) {
+        try {
+            const { getUserCached } = require('./database/userDatabase');
+            const user = await getUserCached(userId);
+            const authId = user?.auth_id;
+            if (authId) {
+                const { healAndRestartBot } = require('./utils/sessionFixer');
+                console.warn(`⚠️ Healing session for ${userId} via ${context}`);
+                await healAndRestartBot(userId, authId);
+            } else {
+                console.warn(`⚠️ No authId found for user ${userId}`);
+            }
+        } catch (e) {
+            console.error(`❌ Failed to heal session for ${userId}:`, e);
+        }
+    } else {
+        console.warn(`[${context}] Could not extract userId from SessionError`);
+    }
+}
+
+function extractUserIdFromError(err) {
+    const msg = err?.message || '';
+    const stack = err?.stack || '';
+    // Try to extract userId robustly
+    let jidMatch = stack.match(/(\d+)@s\.whatsapp\.net/) || msg.match(/(\d+)@s\.whatsapp\.net/);
+    if (jidMatch) return jidMatch[1];
+    // Also match Baileys stack format: at 2347060488875.0
+    jidMatch = stack.match(/at (\d+)\.0/) || msg.match(/(\d+)\.0/);
+    if (jidMatch) return jidMatch[1];
+    return null;
+}
 
 (async () => {
     try {
