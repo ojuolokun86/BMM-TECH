@@ -14,6 +14,7 @@ const { handleAiCommand } = require('../utils/ai'); // Import the AI command han
 
 const { handleStatusCommand } = require('./statusView'); // Import the status command handler
 const handleListGroups = require('./listGroups');
+const aliveCommand = require('./alive');
 
 
 const handleGeneralCommand = async (sock, message, command, args, userId, remoteJid, botInstance, realSender, botOwnerIds, normalizedUserId, botLid, authId) => {
@@ -37,8 +38,12 @@ const handleGeneralCommand = async (sock, message, command, args, userId, remote
             console.log('🏓 Executing "ping" command...');
             await handlePing(sock, botInstance, remoteJid, message, userId, authId);
             break;
+            case 'alive':
+            await aliveCommand(sock, remoteJid, message, userId, botInstance);
+            break;
             case 'time':
                 await handleTimeCommand(botInstance, remoteJid, message, args, sendToChat);
+                break;
                case 'listgroup':
                 case 'listgroups': {
                     let targetJid = userId;
@@ -171,22 +176,13 @@ const handleGeneralCommand = async (sock, message, command, args, userId, remote
                         });
             
                         // Restart the bot
-                        const restartSuccess = await restartUserBot(userId, remoteJid, authId);
-                        if (restartSuccess) {
-                            console.log(`✅ Bot restarted successfully for user: ${userId}`);
-                        } else {
-                            console.error(`❌ Failed to restart bot for user: ${userId}`);
-                            await sendToChat(botInstance, remoteJid, {
-                                message: '❌ Failed to restart the bot. Please try again later.',
-                            });
-                        }
+                       restartUserBot(userId, remoteJid, authId, 'owner_restart'); // Don't await!
+                        return true; // Immediately return from the command handler
                     } catch (error) {
-                        console.error(`❌ Failed to execute "restart" command for user: ${userId}`, error);
-                        await sendToChat(botInstance, remoteJid, {
-                            message: '❌ An error occurred while restarting the bot. Please try again later.',
-                        });
+                        console.error(`❌ Failed to restart bot for user ${normalizedUserId}:`, error);
                     }
                     break;
+
             case 'tagformat':
                 console.log('⚙️ Executing "tagformat" command...');
                 try {

@@ -1,22 +1,25 @@
-# Use Node.js base image (21.x as per your engines)
+# Use Node.js base image (21.x)
 FROM node:21
 
-# Install ffmpeg and yt-dlp safely
+# Install ffmpeg, pip, and yt-dlp safely
 RUN apt-get update && \
     apt-get install -y ffmpeg python3-pip && \
-    pip3 install --break-system-packages -U yt-dlp
+    pip3 install -U yt-dlp --break-system-packages
 
 # Create app directory
 WORKDIR /app
 
 # Copy package.json and install dependencies
 COPY package*.json ./
+RUN npm install @whiskeysockets/baileys@latest
 RUN npm install
 
-# Copy all files
+
+
+# Copy rest of the code
 COPY . .
 
-# Expose the port your app runs on
+# Expose your app's port
 EXPOSE 3000
 
 # Start your app
